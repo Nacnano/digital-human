@@ -1,0 +1,6 @@
+{
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": { // format import on save
+        "source.organizeImports": "explicit"
+    }
+}
