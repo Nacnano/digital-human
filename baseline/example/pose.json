@@ -1,0 +1,16 @@
+[
+    {
+        "time": "0:00-0:10",
+        "eye_contact": "looking away",
+        "facial_expression": "neutral",
+        "posture": "slouched",
+        "gesture": "none"
+    },
+    {
+        "time": "0:10-0:20",
+        "eye_contact": "looking at camera",
+        "facial_expression": "smile",
+        "posture": "upright",
+        "gesture": "hand wave"
+    }
+]

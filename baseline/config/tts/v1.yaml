@@ -1,0 +1,4 @@
+_target_: module.tts.TTS
+api_key: ${oc.env:ELEVEN_LABS_API_KEY}
+voice_id: TX3LPaxmHKxFdv7VOQHJ
+model_id: eleven_multilingual_v2

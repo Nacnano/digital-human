@@ -1,0 +1,2 @@
+_target_: module.stt.STT
+api_key: ${oc.env:DEEPGRAM_API_KEY}

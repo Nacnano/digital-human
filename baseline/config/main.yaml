@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+  - llm: v1
+  - tts: v1
+  - stt: v1
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+audio_file_path: example/test.mp3
+pose_file_path: example/pose.json
