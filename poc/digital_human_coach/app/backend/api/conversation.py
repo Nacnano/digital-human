@@ -45,9 +45,18 @@ def get_services():
                 provider=stt_provider,
                 api_key=os.getenv(f"{stt_provider.upper()}_API_KEY")
             )
+            
+            # Get the appropriate API key for LLM provider
+            if llm_provider in ["google", "gemini"]:
+                llm_api_key = os.getenv("GOOGLE_API_KEY")
+            elif llm_provider == "typhoon":
+                llm_api_key = os.getenv("TYPHOON_API_KEY")
+            else:
+                llm_api_key = os.getenv(f"{llm_provider.upper()}_API_KEY")
+            
             _llm_service = create_llm_service(
                 provider=llm_provider,
-                api_key=os.getenv(f"{llm_provider.upper()}_API_KEY"),
+                api_key=llm_api_key,
                 model=os.getenv("LLM_MODEL")
             )
             _tts_service = create_tts_service(

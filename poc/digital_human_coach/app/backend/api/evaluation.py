@@ -39,9 +39,20 @@ def get_services():
     global _llm_service, _stt_service, _tts_service, _pose_service, _metrics_service
     
     if _llm_service is None:
+        llm_provider = os.getenv("LLM_PROVIDER", "openai")
+        # Get the appropriate API key based on provider
+        if llm_provider in ["google", "gemini"]:
+            api_key = os.getenv("GOOGLE_API_KEY")
+        elif llm_provider == "typhoon":
+            api_key = os.getenv("TYPHOON_API_KEY")
+        elif llm_provider == "anthropic":
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+        else:
+            api_key = os.getenv("OPENAI_API_KEY")
+        
         _llm_service = create_llm_service(
-            provider=os.getenv("LLM_PROVIDER", "openai"),
-            api_key=os.getenv("OPENAI_API_KEY"),
+            provider=llm_provider,
+            api_key=api_key,
             model=os.getenv("LLM_MODEL")
         )
     if _stt_service is None:
