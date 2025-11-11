@@ -18,7 +18,7 @@ from app.utils.storage import StorageService
 async def lifespan(app: FastAPI):
     """Lifecycle management for the application"""
     # Startup
-    logger.info("Starting Digital Human Coach API server...")
+    logger.info("Starting Digital Human App API server...")
     
     # Initialize storage
     storage = StorageService()

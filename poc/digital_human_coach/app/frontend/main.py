@@ -16,7 +16,7 @@ load_dotenv()
 API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 
 st.set_page_config(
-    page_title="Digital Human Coach",
+    page_title="Digital Human App",
     page_icon="🎤",
     layout="wide"
 )
@@ -291,7 +291,7 @@ else:  # Evaluation Mode
 # Footer
 st.sidebar.markdown("---")
 st.sidebar.info("""
-**Digital Human Coach v0.1.0**
+**Digital Human App v0.1.0**
 
 🔧 Powered by:
 - STT: Whisper/Deepgram

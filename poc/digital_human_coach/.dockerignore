@@ -1,4 +1,4 @@
-# Docker ignore file for Digital Human Coach
+# Docker ignore file for Digital Human App
 
 # Python cache
 __pycache__/
@@ -45,17 +45,17 @@ temp/uploads/*/
 
 # Documentation (keep in repo but not in image)
 docs/
-examples/
 *.md
 !README.md
 
-# Test files (not needed in production)
+# Test files and scripts (not needed in production)
+tests/
+scripts/
+examples/
 test_*.py
-simple_test.py
-quick_test.py
-verification_summary.py
 TEST_REDUNDANCY_ANALYSIS.md
 VERIFICATION_REPORT.md
+DOCKER_MIGRATION_SUMMARY.md
 
 # Batch files (Windows specific)
 *.bat

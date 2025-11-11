@@ -1,8 +1,8 @@
 #!/bin/bash
-# Quick start script for Digital Human Coach with Docker
+# Quick start script for Digital Human App with Docker
 
 echo "================================================"
-echo "Digital Human Coach - Docker Quick Start"
+echo "Digital Human App - Docker Quick Start"
 echo "================================================"
 echo ""
 

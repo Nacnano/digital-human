@@ -1,5 +1,5 @@
 [project]
-name = "digital-human-coach"
+name = "digital-human-app"
 version = "0.1.0"
 description = "AI-powered Digital Human Communication Coach PoC"
 readme = "README.md"

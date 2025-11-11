@@ -64,7 +64,7 @@ A multi-modal AI-powered communication coach that provides real-time conversatio
 2. **Install dependencies**
 
    ```bash
-   cd poc/digital_human_coach
+   cd poc/digital_human_app
    uv sync
    ```
 
@@ -89,14 +89,32 @@ A multi-modal AI-powered communication coach that provides real-time conversatio
 
 ## 🚀 Quick Start
 
-### Run Backend Server
+### Option 1: Docker (Recommended)
 
 ```bash
-uv run python -m app.backend.main
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# Start all services
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:8501
+# Backend:  http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+### Option 2: Local Development
+
+**Run Backend Server**
+
+```bash
+python -m uvicorn app.backend.main:app --host 0.0.0.0 --port 8000
 # Server runs on http://localhost:8000
 ```
 
-### Run Frontend UI
+**Run Frontend UI**
 
 ```bash
 uv run streamlit run app/frontend/main.py
@@ -179,25 +197,20 @@ digital_human_coach/
 │   │   └── models/
 │   │       └── schemas.py       # Pydantic models
 │   ├── frontend/
-│   │   ├── main.py              # Streamlit app
-│   │   ├── gradio_app.py        # Gradio alternative
-│   │   └── components/
-│   │       ├── conversation.py  # Conversation UI
-│   │       └── evaluation.py    # Evaluation UI
+│   │   └── main.py              # Streamlit app
 │   ├── config/
 │   │   └── config.yaml          # Configuration
 │   └── utils/
-│       ├── audio_utils.py       # Audio processing
 │       ├── video_utils.py       # Video processing
 │       └── storage.py           # File management
 ├── tests/
-│   ├── test_stt.py
-│   ├── test_llm.py
-│   └── test_evaluation.py
+│   └── test_api_integration.py  # API integration tests
+├── scripts/
+│   ├── verify_setup.py          # Environment verification
+│   └── show_verification_summary.py # Status display
 ├── examples/
-│   ├── sample_video.mp4
-│   ├── sample_feedback.json
-│   └── demo_script.py
+│   ├── conversation_example.py  # Usage example
+│   └── sample_feedback.md       # Sample output
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── API_REFERENCE.md
@@ -209,15 +222,29 @@ digital_human_coach/
 
 ## 🧪 Testing
 
+### Verify Setup
+
 ```bash
-# Run all tests
-uv run pytest
+python scripts/verify_setup.py
+```
 
-# Run specific test
-uv run pytest tests/test_evaluation.py -v
+### Run Integration Tests
 
-# Run with coverage
-uv run pytest --cov=app tests/
+```bash
+# Direct execution
+python tests/test_api_integration.py
+
+# Or with pytest
+pytest tests/
+
+# With coverage
+pytest --cov=app tests/
+```
+
+### Example Usage
+
+```bash
+python examples/conversation_example.py
 ```
 
 ## 📚 API Documentation

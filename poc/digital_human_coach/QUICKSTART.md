@@ -1,11 +1,11 @@
-# Digital Human Coach - Quick Start Guide
+# Digital Human App - Quick Start Guide
 
 ## 🚀 Quick Setup (5 minutes)
 
 ### Step 1: Navigate to Project Directory
 
 ```powershell
-cd c:\Users\Vivobook\github\digital-human\poc\digital_human_coach
+cd c:\Users\Vivobook\github\digital-human\poc\digital_human_app
 ```
 
 ### Step 2: Install Dependencies
@@ -183,3 +183,4 @@ This uses:
 ---
 
 **Ready to coach!** 🎤🚀
+

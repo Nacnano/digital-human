@@ -1,8 +1,8 @@
 @echo off
-REM Quick start script for Digital Human Coach with Docker (Windows)
+REM Quick start script for Digital Human App with Docker (Windows)
 
 echo ================================================
-echo Digital Human Coach - Docker Quick Start
+echo Digital Human App - Docker Quick Start
 echo ================================================
 echo.
 
