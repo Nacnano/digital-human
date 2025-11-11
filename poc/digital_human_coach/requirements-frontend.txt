@@ -1,0 +1,15 @@
+# Frontend UI Dependencies
+streamlit>=1.30.0
+gradio>=4.15.0
+
+# API Communication
+requests>=2.31.0
+httpx>=0.26.0
+
+# Utilities
+python-dotenv>=1.0.0
+loguru>=0.7.2
+
+# Media handling (minimal for UI)
+pillow>=10.0.0
+numpy>=1.24.0

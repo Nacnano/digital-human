@@ -11,15 +11,19 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY pyproject.toml .
-COPY app ./app
-COPY temp ./temp
+# Copy backend requirements and install dependencies
+COPY requirements-backend.txt .
+RUN pip install --no-cache-dir -r requirements-backend.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
+# Copy application files
+COPY app/backend ./app/backend
+COPY app/utils ./app/utils
+COPY app/__init__.py ./app/__init__.py
+COPY app/config ./app/config
+COPY temp ./temp
 
 # Create necessary directories
 RUN mkdir -p temp/sessions temp/uploads

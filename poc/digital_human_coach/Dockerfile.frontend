@@ -5,14 +5,16 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY pyproject.toml .
-COPY app ./app
+# Copy frontend requirements and install dependencies
+COPY requirements-frontend.txt .
+RUN pip install --no-cache-dir -r requirements-frontend.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
+# Copy application files
+COPY app/frontend ./app/frontend
+COPY app/__init__.py ./app/__init__.py
 
 # Expose Streamlit port
 EXPOSE 8501
