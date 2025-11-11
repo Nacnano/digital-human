@@ -15,6 +15,19 @@ load_dotenv()
 # API Configuration
 API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 
+def get_session_animation_url(session_id: str) -> str:
+    """Get last animation URL from session metadata"""
+    try:
+        response = requests.get(f"{API_BASE}/api/conversation/{session_id}/history")
+        if response.status_code == 200:
+            # Try to get metadata with animation URL
+            # This would require adding an endpoint or modifying the history endpoint
+            # For now, return None
+            pass
+    except:
+        pass
+    return None
+
 st.set_page_config(
     page_title="Digital Human App",
     page_icon="🎤",
@@ -45,6 +58,15 @@ st.markdown('<div class="main-header">🎤 Digital Human Communication Coach</di
 st.sidebar.title("Settings")
 mode = st.sidebar.radio("Mode", ["🗣️ Conversation", "📊 Evaluation"])
 
+# Audio2Face settings (global for conversation mode)
+if mode == "🗣️ Conversation":
+    st.sidebar.subheader("Display Options")
+    show_animation = st.sidebar.checkbox(
+        "Show Animated Face",
+        value=False,
+        help="Display AI's facial animation (requires Audio2Face enabled on backend)"
+    )
+
 if mode == "🗣️ Conversation":
     st.header("Real-Time Conversation Mode")
     st.write("Practice your communication skills with an AI coach")
@@ -74,8 +96,15 @@ if mode == "🗣️ Conversation":
     for msg in st.session_state.get("messages", []):
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
+            
+            # Display audio if available
             if msg.get("audio_url"):
                 st.audio(f"{API_BASE}{msg['audio_url']}")
+            
+            # Display animated face if available and enabled
+            if show_animation and msg.get("animation_url") and msg["role"] == "assistant":
+                st.video(f"{API_BASE}{msg['animation_url']}")
+                st.caption("🎭 Animated Face")
     
     # Input based on selected method
     session_id = st.session_state.conv_session_id
@@ -103,17 +132,22 @@ if mode == "🗣️ Conversation":
                         result = response.json()
                         assistant_msg = result["message"]["content"]
                         audio_url = result.get("audio_url")
+                        animation_url = result.get("animation_url")
                         
                         # Display assistant response
                         with st.chat_message("assistant"):
                             st.write(assistant_msg)
                             if audio_url:
                                 st.audio(f"{API_BASE}{audio_url}")
+                            if show_animation and animation_url:
+                                st.video(f"{API_BASE}{animation_url}")
+                                st.caption("🎭 Animated Face")
                         
                         st.session_state.messages.append({
                             "role": "assistant",
                             "content": assistant_msg,
-                            "audio_url": audio_url
+                            "audio_url": audio_url,
+                            "animation_url": animation_url
                         })
                         
                         st.rerun()
@@ -157,17 +191,22 @@ if mode == "🗣️ Conversation":
                             result = response.json()
                             assistant_msg = result["message"]["content"]
                             audio_url = result.get("audio_url")
+                            animation_url = result.get("animation_url")
                             
                             # Display assistant response
                             with st.chat_message("assistant"):
                                 st.write(assistant_msg)
                                 if audio_url:
                                     st.audio(f"{API_BASE}{audio_url}")
+                                if show_animation and animation_url:
+                                    st.video(f"{API_BASE}{animation_url}")
+                                    st.caption("🎭 Animated Face")
                             
                             st.session_state.messages.append({
                                 "role": "assistant",
                                 "content": assistant_msg,
-                                "audio_url": audio_url
+                                "audio_url": audio_url,
+                                "animation_url": animation_url
                             })
                             
                             st.rerun()
@@ -210,17 +249,22 @@ if mode == "🗣️ Conversation":
                                 result = response.json()
                                 assistant_msg = result["message"]["content"]
                                 audio_url = result.get("audio_url")
+                                animation_url = result.get("animation_url")
                                 
                                 # Display assistant response
                                 with st.chat_message("assistant"):
                                     st.write(assistant_msg)
                                     if audio_url:
                                         st.audio(f"{API_BASE}{audio_url}")
+                                    if show_animation and animation_url:
+                                        st.video(f"{API_BASE}{animation_url}")
+                                        st.caption("🎭 Animated Face")
                                 
                                 st.session_state.messages.append({
                                     "role": "assistant",
                                     "content": assistant_msg,
-                                    "audio_url": audio_url
+                                    "audio_url": audio_url,
+                                    "animation_url": animation_url
                                 })
                                 
                                 st.rerun()
@@ -348,6 +392,7 @@ if mode == "🗣️ Conversation":
                                         result = response.json()
                                         assistant_msg = result["message"]["content"]
                                         audio_url = result.get("audio_url")
+                                        animation_url = result.get("animation_url")
                                         
                                         # Get transcription from response if available
                                         user_transcription = result.get("user_transcription", "[Voice message]")
@@ -373,11 +418,15 @@ if mode == "🗣️ Conversation":
                                                 st.audio(f"{API_BASE}{audio_url}", autoplay=True)
                                             elif audio_url:
                                                 st.audio(f"{API_BASE}{audio_url}")
+                                            if show_animation and animation_url:
+                                                st.video(f"{API_BASE}{animation_url}")
+                                                st.caption("🎭 Animated Face")
                                         
                                         st.session_state.messages.append({
                                             "role": "assistant",
                                             "content": assistant_msg,
-                                            "audio_url": audio_url
+                                            "audio_url": audio_url,
+                                            "animation_url": animation_url
                                         })
                                         
                                         # Clear processing flag and rerun

@@ -89,6 +89,7 @@ class ConversationResponse(BaseModel):
     """Response from conversation endpoint"""
     message: ConversationMessage
     audio_url: Optional[str] = None
+    animation_url: Optional[str] = None  # URL to facial animation video
     processing_time: float
     user_transcription: Optional[str] = None  # For continuous mode
 

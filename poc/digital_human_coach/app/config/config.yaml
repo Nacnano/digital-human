@@ -85,3 +85,19 @@ features:
   enable_audio_upload: true
   enable_video_annotation: false
   enable_real_time_streaming: false
+  enable_audio2face: false # Enable facial animation generation
+
+# Audio2Face Configuration
+audio2face:
+  provider: nvidia # nvidia, mock, huggingface, onnx
+  nvidia:
+    model: nvidia/audio2face-3d # NVIDIA NIM API model
+  huggingface:
+    model: nvidia/Audio2Face-3D-v3.0 # v3.0 (diffusion), v2.3 (regression)
+  onnx:
+    model_path: ./models/audio2face.onnx
+    device: cuda # cuda or cpu
+  output:
+    fps: 60
+    format: mp4
+    include_blendshapes: true

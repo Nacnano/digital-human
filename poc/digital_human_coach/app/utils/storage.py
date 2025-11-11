@@ -136,3 +136,14 @@ class StorageService:
                 if metadata:
                     sessions.append(metadata)
         return sessions
+    
+    def get_temp_path(self, filename: str) -> Path:
+        """Get path in temp directory for a file"""
+        return self.base_path / filename
+    
+    def save_temp_file(self, source_path: str, filename: str) -> str:
+        """Copy file to temp directory and return path"""
+        dest_path = self.get_temp_path(filename)
+        shutil.copy(source_path, dest_path)
+        logger.info(f"Saved temp file: {dest_path}")
+        return str(dest_path)

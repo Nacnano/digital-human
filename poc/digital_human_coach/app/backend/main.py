@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
-from app.backend.api import conversation, evaluation
+from app.backend.api import conversation, evaluation, audio2face
 from app.utils.storage import StorageService
 
 
@@ -67,6 +67,7 @@ if os.path.exists("temp"):
 # Include routers
 app.include_router(conversation.router, prefix="/api/conversation", tags=["conversation"])
 app.include_router(evaluation.router, prefix="/api/evaluation", tags=["evaluation"])
+app.include_router(audio2face.router, prefix="/api/audio2face", tags=["audio2face"])
 
 
 @app.get("/")

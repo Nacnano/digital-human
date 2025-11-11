@@ -3,6 +3,7 @@ Conversation API endpoints
 """
 import base64
 import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -148,30 +149,58 @@ async def speak(
     
     # Generate TTS audio
     audio_url = None
+    audio_file_path = None
     try:
         audio_filename = f"response_{len(conversation_history)}.mp3"
-        audio_path = str(Path(storage.get_session_path(session_id)) / "audio" / audio_filename)
-        await tts_service.generate_to_file(response_text, audio_path)
+        audio_file_path = str(Path(storage.get_session_path(session_id)) / "audio" / audio_filename)
+        await tts_service.generate_to_file(response_text, audio_file_path)
         audio_url = f"/temp/sessions/{session_id}/audio/{audio_filename}"
     except Exception as e:
         logger.warning(f"TTS error: {e}")
         # Continue without audio
+    
+    # Generate facial animation if enabled and audio was generated
+    animation_url = None
+    if os.getenv("ENABLE_AUDIO2FACE", "false").lower() == "true" and audio_file_path and os.path.exists(audio_file_path):
+        try:
+            from app.backend.api.audio2face import get_audio2face_service
+            
+            logger.info("Generating facial animation for response...")
+            audio2face = get_audio2face_service()
+            
+            animation_result = await audio2face.generate_facial_animation(
+                audio_path=audio_file_path
+            )
+            
+            # Save animation video
+            if animation_result.get("video_path"):
+                video_filename = f"animation_{len(conversation_history)}.mp4"
+                video_path = str(Path(storage.get_session_path(session_id)) / "video" / video_filename)
+                shutil.copy(animation_result["video_path"], video_path)
+                animation_url = f"/temp/sessions/{session_id}/video/{video_filename}"
+                logger.info(f"Generated facial animation: {animation_url}")
+        except Exception as e:
+            logger.warning(f"Audio2Face error: {e}")
+            # Continue without animation
     
     # Update session metadata
     storage.update_metadata(session_id, {"conversation": conversation_history})
     
     processing_time = (datetime.now() - start_time).total_seconds()
     
-    return ConversationResponse(
+    response_data = ConversationResponse(
         message=ConversationMessage(
             role=MessageRole.ASSISTANT,
             content=response_text,
             timestamp=datetime.now()
         ),
         audio_url=audio_url,
+        animation_url=animation_url,  # Include animation URL in response
         processing_time=processing_time,
         user_transcription=text  # Include user transcription for continuous mode
     )
+    
+    return response_data
 
 
 @router.get("/{session_id}/history", response_model=ConversationHistory)
