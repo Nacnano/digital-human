@@ -24,6 +24,16 @@ class LLMService(ABC):
     ) -> str:
         """Generate response from conversation history"""
         pass
+    
+    async def generate_conversation_stream(
+        self,
+        messages: List[dict],
+        system_prompt: Optional[str] = None
+    ):
+        """Generate streaming response from conversation history (optional)"""
+        # Default implementation: yield the complete response
+        response = await self.generate_conversation(messages, system_prompt)
+        yield response
 
 
 class OpenAILLM(LLMService):
@@ -353,6 +363,34 @@ class NVIDIALM(LLMService):
             return response.choices[0].message.content or ""
         except Exception as e:
             logger.error(f"NVIDIA conversation error: {e}")
+            raise
+    
+    async def generate_conversation_stream(
+        self,
+        messages: List[dict],
+        system_prompt: Optional[str] = None
+    ):
+        """Generate streaming response from conversation"""
+        try:
+            full_messages = []
+            if system_prompt:
+                full_messages.append({"role": "system", "content": system_prompt})
+            full_messages.extend(messages)
+            
+            stream = self.client.chat.completions.create(
+                model=self.model,
+                messages=full_messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p,
+                stream=True
+            )
+            
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            logger.error(f"NVIDIA streaming error: {e}")
             raise
 
 

@@ -60,6 +60,14 @@ if mode == "🗣️ Conversation":
             st.error(f"Failed to connect to API: {e}")
             st.stop()
     
+    # Input method selector
+    st.sidebar.subheader("Input Method")
+    input_method = st.sidebar.radio(
+        "Choose input method:",
+        ["💬 Text", "🎤 Upload Audio", "🔴 Live Recording"],
+        help="Select how you want to communicate with the AI coach"
+    )
+    
     # Display conversation history
     st.subheader("Conversation")
     
@@ -69,68 +77,187 @@ if mode == "🗣️ Conversation":
             if msg.get("audio_url"):
                 st.audio(f"{API_BASE}{msg['audio_url']}")
     
-    # Input methods
-    col1, col2 = st.columns([3, 1])
+    # Input based on selected method
+    session_id = st.session_state.conv_session_id
     
-    with col1:
-        user_input = st.chat_input("Type your message or upload audio...")
+    if input_method == "💬 Text":
+        # Text input
+        user_input = st.chat_input("Type your message...")
+        
+        if user_input:
+            # Display user message
+            with st.chat_message("user"):
+                st.write(user_input)
+            
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            
+            # Send to API
+            try:
+                with st.spinner("AI is thinking..."):
+                    response = requests.post(
+                        f"{API_BASE}/api/conversation/{session_id}/speak",
+                        data={"text": user_input}
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        assistant_msg = result["message"]["content"]
+                        audio_url = result.get("audio_url")
+                        
+                        # Display assistant response
+                        with st.chat_message("assistant"):
+                            st.write(assistant_msg)
+                            if audio_url:
+                                st.audio(f"{API_BASE}{audio_url}")
+                        
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": assistant_msg,
+                            "audio_url": audio_url
+                        })
+                        
+                        st.rerun()
+                    else:
+                        st.error(f"API Error: {response.text}")
+            except Exception as e:
+                st.error(f"Error: {e}")
     
-    with col2:
-        audio_file = st.file_uploader("🎤 Upload Audio", type=["wav", "mp3", "m4a"], label_visibility="collapsed")
+    elif input_method == "🎤 Upload Audio":
+        # Audio file upload
+        audio_file = st.file_uploader(
+            "Upload an audio file",
+            type=["wav", "mp3", "m4a", "ogg", "webm"],
+            help="Upload a pre-recorded audio file"
+        )
+        
+        if audio_file:
+            st.audio(audio_file)
+            
+            if st.button("📤 Send Audio", type="primary"):
+                # Display user message
+                with st.chat_message("user"):
+                    st.write("[Audio message]")
+                    st.audio(audio_file)
+                
+                st.session_state.messages.append({"role": "user", "content": "[Audio message]"})
+                
+                # Send to API
+                try:
+                    with st.spinner("Processing audio and generating response..."):
+                        # Reset file pointer
+                        audio_file.seek(0)
+                        files = {"audio": audio_file}
+                        
+                        response = requests.post(
+                            f"{API_BASE}/api/conversation/{session_id}/speak",
+                            files=files
+                        )
+                        
+                        if response.status_code == 200:
+                            result = response.json()
+                            assistant_msg = result["message"]["content"]
+                            audio_url = result.get("audio_url")
+                            
+                            # Display assistant response
+                            with st.chat_message("assistant"):
+                                st.write(assistant_msg)
+                                if audio_url:
+                                    st.audio(f"{API_BASE}{audio_url}")
+                            
+                            st.session_state.messages.append({
+                                "role": "assistant",
+                                "content": assistant_msg,
+                                "audio_url": audio_url
+                            })
+                            
+                            st.rerun()
+                        else:
+                            st.error(f"API Error: {response.text}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
     
-    # Process input
-    if user_input or audio_file:
-        session_id = st.session_state.conv_session_id
+    else:  # Live Recording
+        st.info("🎙️ **Live Audio Recording**")
+        st.write("Click the button below to record your voice in real-time.")
         
-        # Display user message
-        with st.chat_message("user"):
-            st.write(user_input if user_input else "[Audio input]")
-        
-        st.session_state.messages.append({"role": "user", "content": user_input or "[Audio]"})
-        
-        # Send to API
+        # Use streamlit-audio-recorder or st.audio_input if available
         try:
-            with st.spinner("Thinking..."):
-                if audio_file:
-                    files = {"audio": audio_file}
-                    data = {}
-                else:
-                    files = None
-                    data = {"text": user_input}
+            # Try using st.audio_input (available in Streamlit 1.28+)
+            audio_value = st.audio_input("Record your message")
+            
+            if audio_value:
+                st.audio(audio_value)
                 
-                response = requests.post(
-                    f"{API_BASE}/api/conversation/{session_id}/speak",
-                    files=files,
-                    data=data
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    assistant_msg = result["message"]["content"]
-                    audio_url = result.get("audio_url")
+                if st.button("📤 Send Recording", type="primary"):
+                    # Display user message
+                    with st.chat_message("user"):
+                        st.write("[Voice message]")
+                        st.audio(audio_value)
                     
-                    # Display assistant response
-                    with st.chat_message("assistant"):
-                        st.write(assistant_msg)
-                        if audio_url:
-                            st.audio(f"{API_BASE}{audio_url}")
+                    st.session_state.messages.append({"role": "user", "content": "[Voice message]"})
                     
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": assistant_msg,
-                        "audio_url": audio_url
-                    })
-                    
-                    st.rerun()
-                else:
-                    st.error(f"API Error: {response.text}")
-        except Exception as e:
-            st.error(f"Error: {e}")
+                    # Send to API
+                    try:
+                        with st.spinner("Processing audio and generating response..."):
+                            files = {"audio": ("recording.wav", audio_value, "audio/wav")}
+                            
+                            response = requests.post(
+                                f"{API_BASE}/api/conversation/{session_id}/speak",
+                                files=files
+                            )
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                assistant_msg = result["message"]["content"]
+                                audio_url = result.get("audio_url")
+                                
+                                # Display assistant response
+                                with st.chat_message("assistant"):
+                                    st.write(assistant_msg)
+                                    if audio_url:
+                                        st.audio(f"{API_BASE}{audio_url}")
+                                
+                                st.session_state.messages.append({
+                                    "role": "assistant",
+                                    "content": assistant_msg,
+                                    "audio_url": audio_url
+                                })
+                                
+                                st.rerun()
+                            else:
+                                st.error(f"API Error: {response.text}")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+        
+        except AttributeError:
+            # Fallback if st.audio_input is not available
+            st.warning("⚠️ Live recording requires Streamlit 1.28 or higher.")
+            st.info("""
+            **To enable live recording:**
+            1. Upgrade Streamlit: `pip install --upgrade streamlit`
+            2. Or use the "Upload Audio" option to upload pre-recorded files
+            
+            **Alternative: Use external recording**
+            - Record audio using your device's voice recorder
+            - Save the file
+            - Switch to "Upload Audio" mode and upload the file
+            """)
+            
+            st.markdown("---")
+            st.subheader("Quick Recording Tips")
+            st.write("""
+            - **Windows**: Use Voice Recorder app (Win + H for dictation)
+            - **Mac**: Use QuickTime Player or Voice Memos
+            - **Linux**: Use GNOME Sound Recorder or Audacity
+            """)
     
     # Clear conversation
-    if st.sidebar.button("🗑️ Clear Conversation"):
+    if st.sidebar.button("🗑️ Clear Conversation", help="Start a new conversation"):
         if "conv_session_id" in st.session_state:
-            requests.delete(f"{API_BASE}/api/conversation/{st.session_state.conv_session_id}")
+            try:
+                requests.delete(f"{API_BASE}/api/conversation/{st.session_state.conv_session_id}")
+            except:
+                pass
             del st.session_state.conv_session_id
             st.session_state.messages = []
         st.rerun()
