@@ -222,7 +222,7 @@ class TyphoonLLM(LLMService):
     def __init__(
         self,
         api_key: str,
-        model: str = "typhoon2-qwen2vl-7b-vision-instruct",
+        model: str = "typhoon-v2.1-12b-instruct",
         temperature: float = 0.7,
         max_tokens: int = 500
     ):
@@ -346,7 +346,7 @@ def create_llm_service(
         elif provider in ["google", "gemini"]:
             model = "gemini-2.0-flash-exp"
         elif provider == "typhoon":
-            model = "typhoon2-qwen2vl-7b-vision-instruct"
+            model = "typhoon-v2.1-12b-instruct"
     
     if provider == "openai":
         return OpenAILLM(api_key=api_key, model=model, **kwargs)
