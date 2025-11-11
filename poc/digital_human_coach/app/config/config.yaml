@@ -1,0 +1,87 @@
+# Digital Human Coach Configuration
+
+# Service Providers
+stt:
+  provider: whisper # whisper, deepgram, google
+  whisper:
+    model: base # tiny, base, small, medium, large
+  deepgram:
+    model: nova-2
+  google:
+    language_code: en-US
+
+llm:
+  provider: openai # openai, anthropic, google
+  model: gpt-4 # gpt-4, gpt-3.5-turbo, claude-3-sonnet, gemini-2.0-flash-exp
+  temperature: 0.7
+  max_tokens: 500
+  system_prompts:
+    conversation: |
+      You are an AI communication coach helping users improve their speaking skills.
+      Be encouraging, constructive, and engaging. Ask relevant follow-up questions 
+      and provide helpful tips when appropriate. Keep responses conversational and natural.
+    evaluation: |
+      You are an expert communication evaluator. Analyze the provided transcript and 
+      metrics to give constructive feedback. Focus on: Clarity, Delivery, Body Language, 
+      and provide specific actionable recommendations. Be encouraging but honest.
+
+tts:
+  provider: edge # elevenlabs, edge, gtts, coqui
+  elevenlabs:
+    voice_id: TX3LPaxmHKxFdv7VOQHJ
+    model_id: eleven_multilingual_v2
+  edge:
+    voice: en-US-AriaNeural
+    rate: "+0%"
+    volume: "+0%"
+  gtts:
+    language: en
+    slow: false
+
+# Analysis Configuration
+pose:
+  detector: mediapipe # mediapipe, openpose
+  confidence_threshold: 0.5
+  tracking_confidence: 0.5
+  model_complexity: 1 # 0=lite, 1=full, 2=heavy
+
+metrics:
+  silence_threshold: 0.02
+  min_pause_duration: 0.3 # seconds
+  filler_words:
+    - um
+    - uh
+    - er
+    - ah
+    - like
+    - you know
+    - i mean
+    - sort of
+    - kind of
+    - actually
+    - basically
+    - literally
+  ideal_wpm_min: 120
+  ideal_wpm_max: 160
+
+# Server Configuration
+server:
+  host: 0.0.0.0
+  port: 8000
+  reload: true
+  log_level: info
+
+# Storage Configuration
+storage:
+  base_path: temp
+  max_session_age_hours: 24
+  max_upload_size_mb: 100
+  cleanup_on_startup: false
+
+# Feature Flags
+features:
+  enable_conversation: true
+  enable_evaluation: true
+  enable_audio_upload: true
+  enable_video_annotation: false
+  enable_real_time_streaming: false
