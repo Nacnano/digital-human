@@ -10,11 +10,14 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from loguru import logger
 
 from app.backend.models.schemas import (
-    AIFeedback,
     EvaluationResult,
     EvaluationStatus,
     SessionStatus,
     VideoUploadResponse,
+    EvaluationFeedback,
+    ScoreWithComment,
+    SpeechEvaluation,
+    PoseEvaluation,
 )
 from app.backend.services.llm_service import EVALUATION_SYSTEM_PROMPT, create_llm_service
 from app.backend.services.metrics_service import MetricsService
@@ -229,27 +232,75 @@ Format: {{"posture_score": 0.0, "gesture_count": 0, "movement_smoothness": 0.0, 
         
         # Parse feedback (expect JSON format)
         try:
-            feedback_data = json.loads(feedback_text)
-        except json.JSONDecodeError:
-            # Fallback if not JSON
-            feedback_data = {
-                "overall_score": 7.0,
-                "strengths": ["Good content"],
-                "areas_for_improvement": ["Practice more"],
-                "specific_recommendations": ["Keep practicing"],
-                "detailed_feedback": feedback_text
-            }
+            # Clean the response - remove markdown code blocks if present
+            feedback_text_clean = feedback_text.strip()
+            if feedback_text_clean.startswith("```json"):
+                feedback_text_clean = feedback_text_clean[7:]
+            if feedback_text_clean.startswith("```"):
+                feedback_text_clean = feedback_text_clean[3:]
+            if feedback_text_clean.endswith("```"):
+                feedback_text_clean = feedback_text_clean[:-3]
+            feedback_text_clean = feedback_text_clean.strip()
+            
+            feedback_data = json.loads(feedback_text_clean)
+            
+            # Parse into new structure
+            feedback = EvaluationFeedback(
+                Speech=SpeechEvaluation(
+                    Speed=ScoreWithComment(**feedback_data["Speech"]["Speed"]),
+                    Naturalness=ScoreWithComment(**feedback_data["Speech"]["Naturalness"]),
+                    Continuity=ScoreWithComment(**feedback_data["Speech"]["Continuity"]),
+                    ListeningEffort=ScoreWithComment(**feedback_data["Speech"]["ListeningEffort"])
+                ),
+                Pose=PoseEvaluation(
+                    EyeContact=ScoreWithComment(**feedback_data["Pose"]["EyeContact"]),
+                    Posture=ScoreWithComment(**feedback_data["Pose"]["Posture"]),
+                    HandGestures=ScoreWithComment(**feedback_data["Pose"]["HandGestures"])
+                ),
+                OverallFeedback=feedback_data["OverallFeedback"]
+            )
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.warning(f"[{session_id}] Failed to parse feedback JSON: {e}. Using fallback.")
+            # Fallback structure
+            feedback = EvaluationFeedback(
+                Speech=SpeechEvaluation(
+                    Speed=ScoreWithComment(score=2, comment="Moderate pace observed."),
+                    Naturalness=ScoreWithComment(score=2, comment="Somewhat natural delivery."),
+                    Continuity=ScoreWithComment(score=2, comment="Generally smooth flow."),
+                    ListeningEffort=ScoreWithComment(score=3, comment="Moderate listening effort.")
+                ),
+                Pose=PoseEvaluation(
+                    EyeContact=ScoreWithComment(score=2, comment="Good eye contact maintained."),
+                    Posture=ScoreWithComment(score=2, comment="Good posture overall."),
+                    HandGestures=ScoreWithComment(score=2, comment="Some effective gestures used.")
+                ),
+                OverallFeedback=feedback_text[:500] if feedback_text else "Unable to parse detailed feedback. Please review the metrics."
+            )
         
         storage.update_metadata(session_id, {"progress": 85})
         
         # Step 6: Generate audio feedback (95%)
         logger.info(f"[{session_id}] Generating audio feedback...")
         audio_feedback_path = str(Path(storage.get_session_path(session_id)) / "feedback.mp3")
+        
+        # Create a narrative version for TTS
+        audio_feedback_text = f"""Overall assessment: {feedback.OverallFeedback}
+
+Speech evaluation: Speed is {feedback.Speech.Speed.comment}. 
+Naturalness: {feedback.Speech.Naturalness.comment}. 
+Continuity: {feedback.Speech.Continuity.comment}. 
+Listening effort: {feedback.Speech.ListeningEffort.comment}.
+
+Pose evaluation: Eye contact - {feedback.Pose.EyeContact.comment}. 
+Posture - {feedback.Pose.Posture.comment}. 
+Hand gestures - {feedback.Pose.HandGestures.comment}."""
+        
         await tts_service.generate_to_file(
-            feedback_data["detailed_feedback"],
+            audio_feedback_text,
             audio_feedback_path
         )
         audio_feedback_url = f"/temp/sessions/{session_id}/feedback.mp3"
+        feedback.audio_feedback_url = audio_feedback_url
         storage.update_metadata(session_id, {"progress": 95})
         
         # Get updated metadata for result
@@ -264,14 +315,7 @@ Format: {{"posture_score": 0.0, "gesture_count": 0, "movement_smoothness": 0.0, 
             duration_seconds=duration,
             speech_metrics=speech_metrics,
             pose_metrics=pose_metrics,
-            feedback=AIFeedback(
-                overall_score=feedback_data.get("overall_score", 7.0),
-                strengths=feedback_data.get("strengths", []),
-                areas_for_improvement=feedback_data.get("areas_for_improvement", []),
-                specific_recommendations=feedback_data.get("specific_recommendations", []),
-                detailed_feedback=feedback_data.get("detailed_feedback", ""),
-                audio_feedback_url=audio_feedback_url
-            ),
+            feedback=feedback,
             created_at=datetime.now()
         )
         

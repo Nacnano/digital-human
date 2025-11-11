@@ -244,27 +244,26 @@ class MetricsService:
         speech_metrics: SpeechMetrics,
         pose_metrics: Optional[object] = None
     ) -> str:
-        """Generate prompt for LLM feedback"""
+        """Generate prompt for LLM feedback using new evaluation criteria"""
         
-        prompt = f"""Please analyze this communication performance and provide detailed feedback.
+        prompt = f"""Analyze this presentation video and provide a structured evaluation.
 
 ## Transcript
 {transcript}
 
-## Speech Metrics
+## Speech Metrics (for reference)
 - Words per Minute: {speech_metrics.words_per_minute} (ideal: 120-160)
 - Total Words: {speech_metrics.total_words}
 - Speaking Time: {speech_metrics.speaking_time_seconds} seconds
 - Pauses: {speech_metrics.pause_count} (avg: {speech_metrics.average_pause_duration}s)
-- Filler Words: {speech_metrics.filler_words_count} ({', '.join(speech_metrics.filler_words)})
-- Clarity Score: {speech_metrics.clarity_score}/10
+- Filler Words: {speech_metrics.filler_words_count} ({', '.join(speech_metrics.filler_words) if speech_metrics.filler_words else 'none'})
 - Volume Variation: {speech_metrics.volume_variation}
 - Pitch Variation: {speech_metrics.pitch_variation}
 """
         
         if pose_metrics:
             prompt += f"""
-## Body Language Metrics
+## Body Language Metrics (for reference)
 - Posture Score: {pose_metrics.posture_score}/10
 - Gestures: {pose_metrics.gesture_count}
 - Movement Smoothness: {pose_metrics.movement_smoothness}/10
@@ -273,19 +272,9 @@ class MetricsService:
 """
         
         prompt += """
-Please provide:
-1. **Overall Score** (1-10)
-2. **Strengths** (2-3 points)
-3. **Areas for Improvement** (2-3 points)
-4. **Specific Recommendations** (3-5 actionable tips)
-5. **Detailed Feedback** (2-3 paragraphs)
+Based on the transcript and metrics above, evaluate according to the criteria provided in your system prompt.
 
-Format your response as JSON with these keys:
-- overall_score
-- strengths (array)
-- areas_for_improvement (array)
-- specific_recommendations (array)
-- detailed_feedback (string)
-"""
+Provide your evaluation in the exact JSON format specified, with scores and comments for each criterion.
+Remember: Return ONLY valid JSON without any markdown formatting."""
         
         return prompt

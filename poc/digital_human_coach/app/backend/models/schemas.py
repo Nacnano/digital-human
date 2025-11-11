@@ -96,8 +96,38 @@ class ConversationResponse(BaseModel):
 # Evaluation Models
 # ============================================================================
 
+class ScoreWithComment(BaseModel):
+    """Score with comment for evaluation criteria"""
+    score: int
+    comment: str
+
+
+class SpeechEvaluation(BaseModel):
+    """Speech evaluation based on new criteria"""
+    Speed: ScoreWithComment = Field(description="Speed: 1=Slow, 2=Moderate, 3=Fast")
+    Naturalness: ScoreWithComment = Field(description="Naturalness: 1=Unnatural, 2=Somewhat natural, 3=Very natural")
+    Continuity: ScoreWithComment = Field(description="Continuity: 1=Smooth, 2=Somewhat smooth, 3=Disjointed")
+    ListeningEffort: ScoreWithComment = Field(description="Listening Effort: 1-5, higher is better")
+
+
+class PoseEvaluation(BaseModel):
+    """Pose evaluation based on new criteria"""
+    EyeContact: ScoreWithComment = Field(description="Eye Contact: 1=Needs improvement, 2=Good, 3=Excellent")
+    Posture: ScoreWithComment = Field(description="Posture: 1=Needs improvement, 2=Good, 3=Excellent")
+    HandGestures: ScoreWithComment = Field(description="Hand Gestures: 0=None, 1=Needs improvement, 2=Good, 3=Excellent")
+
+
+class EvaluationFeedback(BaseModel):
+    """Complete evaluation feedback"""
+    Speech: SpeechEvaluation
+    Pose: PoseEvaluation
+    OverallFeedback: str
+    audio_feedback_url: Optional[str] = None
+
+
+# Legacy metrics for backward compatibility (still calculated but not primary)
 class SpeechMetrics(BaseModel):
-    """Speech analysis metrics"""
+    """Speech analysis metrics (legacy)"""
     words_per_minute: float
     total_words: int
     speaking_time_seconds: float
@@ -111,7 +141,7 @@ class SpeechMetrics(BaseModel):
 
 
 class PoseMetrics(BaseModel):
-    """Body pose analysis metrics"""
+    """Body pose analysis metrics (legacy)"""
     posture_score: float = Field(ge=0, le=10)
     gesture_count: int
     movement_smoothness: float = Field(ge=0, le=10)
@@ -121,25 +151,15 @@ class PoseMetrics(BaseModel):
     tracking_quality: float = Field(ge=0, le=1)
 
 
-class AIFeedback(BaseModel):
-    """AI-generated feedback"""
-    overall_score: float = Field(ge=0, le=10)
-    strengths: List[str]
-    areas_for_improvement: List[str]
-    specific_recommendations: List[str]
-    detailed_feedback: str
-    audio_feedback_url: Optional[str] = None
-
-
 class EvaluationResult(BaseModel):
     """Complete evaluation result"""
     session_id: str
     video_url: str
     transcript: str
     duration_seconds: float
-    speech_metrics: SpeechMetrics
-    pose_metrics: PoseMetrics
-    feedback: AIFeedback
+    speech_metrics: SpeechMetrics  # Legacy metrics
+    pose_metrics: PoseMetrics  # Legacy metrics
+    feedback: EvaluationFeedback  # New structured feedback
     created_at: datetime
 
 

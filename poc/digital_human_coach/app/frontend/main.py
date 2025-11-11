@@ -199,85 +199,114 @@ else:  # Evaluation Mode
                         # Display results
                         st.subheader("📊 Evaluation Results")
                         
-                        # Overall score
+                        feedback = result['feedback']
+                        
+                        # Overall Feedback at the top
+                        st.info(f"**Overall Assessment:** {feedback['OverallFeedback']}")
+                        
+                        # Main metrics in columns
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Overall Score", f"{result['feedback']['overall_score']}/10")
+                            st.metric("Words/Minute", f"{result['speech_metrics']['words_per_minute']:.0f}")
                         with col2:
-                            st.metric("Words/Minute", f"{result['speech_metrics']['words_per_minute']}")
+                            st.metric("Speaking Time", f"{result['speech_metrics']['speaking_time_seconds']:.1f}s")
                         with col3:
                             st.metric("Filler Words", result['speech_metrics']['filler_words_count'])
                         
-                        # Detailed metrics
-                        tab1, tab2, tab3 = st.tabs(["💬 Speech", "🧍 Body Language", "💡 Feedback"])
+                        # Detailed evaluation tabs
+                        tab1, tab2, tab3 = st.tabs(["💬 Speech Evaluation", "🧍 Pose Evaluation", "� Detailed Metrics"])
                         
                         with tab1:
-                            st.write("### Speech Metrics")
+                            st.write("### Speech Evaluation")
+                            
+                            speech = feedback['Speech']
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Speed", f"{speech['Speed']['score']}/3", help="1=Slow, 2=Moderate, 3=Fast")
+                                st.caption(speech['Speed']['comment'])
+                                
+                                st.metric("Naturalness", f"{speech['Naturalness']['score']}/3", help="1=Unnatural, 2=Somewhat natural, 3=Very natural")
+                                st.caption(speech['Naturalness']['comment'])
+                            
+                            with col2:
+                                st.metric("Continuity", f"{speech['Continuity']['score']}/3", help="1=Smooth, 2=Somewhat smooth, 3=Disjointed")
+                                st.caption(speech['Continuity']['comment'])
+                                
+                                st.metric("Listening Effort", f"{speech['ListeningEffort']['score']}/5", help="1=Unclear, 5=Effortless")
+                                st.caption(speech['ListeningEffort']['comment'])
+                        
+                        with tab2:
+                            st.write("### Pose Evaluation")
+                            
+                            pose_eval = feedback['Pose']
+                            
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Eye Contact", f"{pose_eval['EyeContact']['score']}/3", help="1=Needs improvement, 2=Good, 3=Excellent")
+                                st.caption(pose_eval['EyeContact']['comment'])
+                            
+                            with col2:
+                                st.metric("Posture", f"{pose_eval['Posture']['score']}/3", help="1=Needs improvement, 2=Good, 3=Excellent")
+                                st.caption(pose_eval['Posture']['comment'])
+                            
+                            with col3:
+                                st.metric("Hand Gestures", f"{pose_eval['HandGestures']['score']}/3", help="0=None, 1=Needs improvement, 2=Good, 3=Excellent")
+                                st.caption(pose_eval['HandGestures']['comment'])
+                        
+                        with tab3:
+                            st.write("### Detailed Speech Metrics")
                             metrics = result['speech_metrics']
                             col1, col2 = st.columns(2)
                             with col1:
-                                st.metric("Clarity Score", f"{metrics['clarity_score']}/10")
+                                st.metric("Clarity Score", f"{metrics['clarity_score']:.1f}/10")
                                 st.metric("Total Words", metrics['total_words'])
-                                st.metric("Speaking Time", f"{metrics['speaking_time_seconds']}s")
-                            with col2:
                                 st.metric("Pauses", metrics['pause_count'])
-                                st.metric("Avg Pause", f"{metrics['average_pause_duration']}s")
-                                st.metric("Filler Words", ", ".join(metrics['filler_words'][:5]))
-                        
-                        with tab2:
+                                st.metric("Volume Variation", f"{metrics['volume_variation']:.2f}")
+                            with col2:
+                                st.metric("Avg Pause Duration", f"{metrics['average_pause_duration']:.2f}s")
+                                st.metric("Pitch Variation", f"{metrics['pitch_variation']:.2f}")
+                                if metrics['filler_words']:
+                                    st.metric("Common Fillers", ", ".join(metrics['filler_words'][:5]))
+                            
                             st.write("### Body Language Metrics")
                             pose = result['pose_metrics']
                             col1, col2 = st.columns(2)
                             with col1:
-                                st.metric("Posture Score", f"{pose['posture_score']}/10")
+                                st.metric("Posture Score", f"{pose['posture_score']:.1f}/10")
                                 st.metric("Gestures", pose['gesture_count'])
-                                st.metric("Movement Smoothness", f"{pose['movement_smoothness']}/10")
+                                st.metric("Movement Smoothness", f"{pose['movement_smoothness']:.1f}/10")
                             with col2:
-                                st.metric("Eye Contact", f"{pose['eye_contact_score']}/10")
-                                st.metric("Body Openness", f"{pose['body_openness_score']}/10")
+                                st.metric("Eye Contact Score", f"{pose['eye_contact_score']:.1f}/10")
+                                st.metric("Body Openness", f"{pose['body_openness_score']:.1f}/10")
                                 st.metric("Tracking Quality", f"{pose['tracking_quality']*100:.0f}%")
                         
-                        with tab3:
-                            st.write("### AI Feedback")
-                            feedback = result['feedback']
-                            
-                            st.write("#### ✅ Strengths")
-                            for strength in feedback['strengths']:
-                                st.write(f"- {strength}")
-                            
-                            st.write("#### 📈 Areas for Improvement")
-                            for area in feedback['areas_for_improvement']:
-                                st.write(f"- {area}")
-                            
-                            st.write("#### 💡 Recommendations")
-                            for rec in feedback['specific_recommendations']:
-                                st.write(f"- {rec}")
-                            
-                            st.write("#### 📝 Detailed Feedback")
-                            st.write(feedback['detailed_feedback'])
-                            
-                            # Audio feedback
-                            if feedback.get('audio_feedback_url'):
-                                st.write("#### 🔊 Listen to Feedback")
-                                st.audio(f"{API_BASE}{feedback['audio_feedback_url']}")
+                        # Audio feedback
+                        if feedback.get('audio_feedback_url'):
+                            st.write("### 🔊 Audio Feedback")
+                            st.audio(f"{API_BASE}{feedback['audio_feedback_url']}")
                         
                         # Transcript
-                        with st.expander("📄 View Transcript"):
+                        with st.expander("📄 View Full Transcript"):
                             st.write(result['transcript'])
                         
                         # Download report
-                        if st.button("📥 Download Report (JSON)"):
-                            st.download_button(
-                                label="Download",
-                                data=response.text,
-                                file_name=f"report_{session_id}.json",
-                                mime="application/json"
-                            )
-                    
-                    # Clear session
-                    if st.button("🔄 Analyze Another Video"):
-                        del st.session_state.eval_session_id
-                        st.rerun()
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("📥 Download Report (JSON)"):
+                                import json
+                                st.download_button(
+                                    label="Download JSON",
+                                    data=json.dumps(result, indent=2),
+                                    file_name=f"evaluation_report_{session_id}.json",
+                                    mime="application/json"
+                                )
+                        
+                        with col2:
+                            # Clear session
+                            if st.button("🔄 Analyze Another Video"):
+                                del st.session_state.eval_session_id
+                                st.rerun()
                 
                 elif status["status"] == "failed":
                     st.error(f"❌ {status['message']}")
