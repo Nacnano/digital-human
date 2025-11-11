@@ -284,6 +284,78 @@ class TyphoonLLM(LLMService):
             raise
 
 
+class NVIDIALM(LLMService):
+    """NVIDIA API implementation via OpenAI-compatible API"""
+    
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "qwen/qwen3-next-80b-a3b-instruct",
+        temperature: float = 0.6,
+        max_tokens: int = 4096,
+        top_p: float = 0.7
+    ):
+        try:
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key=api_key,
+                base_url="https://integrate.api.nvidia.com/v1"
+            )
+            self.model = model
+            self.temperature = temperature
+            self.max_tokens = max_tokens
+            self.top_p = top_p
+            logger.info(f"Initialized NVIDIA LLM with model: {model}")
+        except ImportError:
+            raise ImportError("openai not installed. Install with: pip install openai")
+    
+    async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Generate text response"""
+        try:
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p
+            )
+            
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            logger.error(f"NVIDIA generation error: {e}")
+            raise
+    
+    async def generate_conversation(
+        self,
+        messages: List[dict],
+        system_prompt: Optional[str] = None
+    ) -> str:
+        """Generate response from conversation"""
+        try:
+            full_messages = []
+            if system_prompt:
+                full_messages.append({"role": "system", "content": system_prompt})
+            full_messages.extend(messages)
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=full_messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p
+            )
+            
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            logger.error(f"NVIDIA conversation error: {e}")
+            raise
+
+
 class LLMServiceFactory:
     """Factory for creating LLM service instances"""
     
@@ -296,6 +368,7 @@ class LLMServiceFactory:
             "google": GoogleLLM,
             "gemini": GoogleLLM,
             "typhoon": TyphoonLLM,
+            "nvidia": NVIDIALM,
         }
         
         if provider not in providers:
@@ -333,6 +406,8 @@ def create_llm_service(
             api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         elif provider == "typhoon":
             api_key = os.getenv("TYPHOON_API_KEY")
+        elif provider == "nvidia":
+            api_key = os.getenv("NVIDIA_API_KEY")
     
     if not api_key:
         raise ValueError(f"{provider} requires API key")
@@ -347,6 +422,8 @@ def create_llm_service(
             model = "gemini-2.0-flash-exp"
         elif provider == "typhoon":
             model = "typhoon-v2.1-12b-instruct"
+        elif provider == "nvidia":
+            model = "qwen/qwen3-next-80b-a3b-instruct"
     
     if provider == "openai":
         return OpenAILLM(api_key=api_key, model=model, **kwargs)
@@ -356,6 +433,8 @@ def create_llm_service(
         return GoogleLLM(api_key=api_key, model=model, **kwargs)
     elif provider == "typhoon":
         return TyphoonLLM(api_key=api_key, model=model, **kwargs)
+    elif provider == "nvidia":
+        return NVIDIALM(api_key=api_key, model=model, **kwargs)
     else:
         raise ValueError(f"Unknown provider: {provider}")
 

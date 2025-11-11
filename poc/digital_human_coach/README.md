@@ -38,6 +38,7 @@ A multi-modal AI-powered communication coach that provides real-time conversatio
 ├──────────────┬──────────────────┤
 │ STT          │ Whisper/Deepgram │
 │ LLM          │ GPT/Claude/Gemini│
+│              │ Typhoon/NVIDIA   │
 │ TTS          │ ElevenLabs/gTTS  │
 │ Pose         │ MediaPipe        │
 │ Video Gen    │ D-ID/EMAGE       │

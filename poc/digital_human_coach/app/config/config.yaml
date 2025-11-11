@@ -11,8 +11,8 @@ stt:
     language_code: en-US
 
 llm:
-  provider: openai # openai, anthropic, google
-  model: gpt-4 # gpt-4, gpt-3.5-turbo, claude-3-sonnet, gemini-2.0-flash-exp
+  provider: openai # openai, anthropic, google, typhoon, nvidia
+  model: gpt-4 # gpt-4, gpt-3.5-turbo, claude-3-sonnet, gemini-2.0-flash-exp, typhoon-v2.1-12b-instruct, qwen/qwen3-next-80b-a3b-instruct
   temperature: 0.7
   max_tokens: 500
   system_prompts:

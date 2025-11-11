@@ -51,6 +51,8 @@ def get_services():
                 llm_api_key = os.getenv("GOOGLE_API_KEY")
             elif llm_provider == "typhoon":
                 llm_api_key = os.getenv("TYPHOON_API_KEY")
+            elif llm_provider == "nvidia":
+                llm_api_key = os.getenv("NVIDIA_API_KEY")
             else:
                 llm_api_key = os.getenv(f"{llm_provider.upper()}_API_KEY")
             
