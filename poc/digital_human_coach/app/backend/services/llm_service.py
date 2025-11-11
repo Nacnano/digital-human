@@ -216,6 +216,74 @@ class GoogleLLM(LLMService):
             raise
 
 
+class TyphoonLLM(LLMService):
+    """Typhoon AI implementation (OpenTyphoon) via OpenAI-compatible API"""
+    
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "typhoon2-qwen2vl-7b-vision-instruct",
+        temperature: float = 0.7,
+        max_tokens: int = 500
+    ):
+        try:
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.opentyphoon.ai/v1"
+            )
+            self.model = model
+            self.temperature = temperature
+            self.max_tokens = max_tokens
+            logger.info(f"Initialized Typhoon LLM with model: {model}")
+        except ImportError:
+            raise ImportError("openai not installed. Install with: pip install openai")
+    
+    async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Generate text response"""
+        try:
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens
+            )
+            
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            logger.error(f"Typhoon generation error: {e}")
+            raise
+    
+    async def generate_conversation(
+        self,
+        messages: List[dict],
+        system_prompt: Optional[str] = None
+    ) -> str:
+        """Generate response from conversation"""
+        try:
+            full_messages = []
+            if system_prompt:
+                full_messages.append({"role": "system", "content": system_prompt})
+            full_messages.extend(messages)
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=full_messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens
+            )
+            
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            logger.error(f"Typhoon conversation error: {e}")
+            raise
+
+
 class LLMServiceFactory:
     """Factory for creating LLM service instances"""
     
@@ -227,6 +295,7 @@ class LLMServiceFactory:
             "anthropic": AnthropicLLM,
             "google": GoogleLLM,
             "gemini": GoogleLLM,
+            "typhoon": TyphoonLLM,
         }
         
         if provider not in providers:
@@ -262,6 +331,8 @@ def create_llm_service(
             api_key = os.getenv("ANTHROPIC_API_KEY")
         elif provider in ["google", "gemini"]:
             api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        elif provider == "typhoon":
+            api_key = os.getenv("TYPHOON_API_KEY")
     
     if not api_key:
         raise ValueError(f"{provider} requires API key")
@@ -274,6 +345,8 @@ def create_llm_service(
             model = "claude-3-sonnet-20240229"
         elif provider in ["google", "gemini"]:
             model = "gemini-2.0-flash-exp"
+        elif provider == "typhoon":
+            model = "typhoon2-qwen2vl-7b-vision-instruct"
     
     if provider == "openai":
         return OpenAILLM(api_key=api_key, model=model, **kwargs)
@@ -281,6 +354,8 @@ def create_llm_service(
         return AnthropicLLM(api_key=api_key, model=model, **kwargs)
     elif provider in ["google", "gemini"]:
         return GoogleLLM(api_key=api_key, model=model, **kwargs)
+    elif provider == "typhoon":
+        return TyphoonLLM(api_key=api_key, model=model, **kwargs)
     else:
         raise ValueError(f"Unknown provider: {provider}")
 

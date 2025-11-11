@@ -102,6 +102,8 @@ Thumbs.db
 Desktop.ini
 
 # Project specific
-# run_backend.py
+run_backend.py
+test_gemini.py
+test_typhoon.py
 # static/
 # uploads/

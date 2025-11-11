@@ -1,0 +1,75 @@
+# Docker ignore file for Digital Human Coach
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp/sessions/*/
+temp/uploads/*/
+*.tmp
+
+# Documentation (keep in repo but not in image)
+docs/
+examples/
+*.md
+!README.md
+
+# Test files (not needed in production)
+test_*.py
+simple_test.py
+quick_test.py
+verification_summary.py
+TEST_REDUNDANCY_ANALYSIS.md
+VERIFICATION_REPORT.md
+
+# Batch files (Windows specific)
+*.bat
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Package files
+*.egg-info/
+dist/
+build/

@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: digital-human-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # API Keys - Configure these in .env file
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - TYPHOON_API_KEY=${TYPHOON_API_KEY:-}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+
+      # Service Providers
+      - STT_PROVIDER=${STT_PROVIDER:-whisper}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - TTS_PROVIDER=${TTS_PROVIDER:-edge}
+
+      # Application Settings
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE:-100}
+    volumes:
+      - ./temp:/app/temp
+      - ./app:/app/app
+    networks:
+      - digital-human-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: digital-human-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - digital-human-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  digital-human-network:
+    driver: bridge
+
+volumes:
+  temp-data:
+    driver: local
