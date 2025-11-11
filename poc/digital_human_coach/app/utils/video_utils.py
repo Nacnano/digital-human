@@ -27,14 +27,19 @@ def extract_audio_from_video(video_path: str, audio_path: str) -> str:
     try:
         import ffmpeg
         
-        stream = ffmpeg.input(video_path)
-        stream = ffmpeg.output(stream, audio_path, acodec='pcm_s16le', ar='16000', ac='1')
-        ffmpeg.run(stream, overwrite_output=True, quiet=True)
-        
-        logger.info(f"Extracted audio: {audio_path}")
-        return audio_path
-    except ImportError:
+        # Check if this is the correct ffmpeg-python package
+        if hasattr(ffmpeg, 'input'):
+            stream = ffmpeg.input(video_path)
+            stream = ffmpeg.output(stream, audio_path, acodec='pcm_s16le', ar='16000', ac='1')
+            ffmpeg.run(stream, overwrite_output=True, quiet=True)
+            
+            logger.info(f"Extracted audio: {audio_path}")
+            return audio_path
+        else:
+            raise AttributeError("Wrong ffmpeg package installed")
+    except (ImportError, AttributeError) as e:
         # Fallback to subprocess
+        logger.warning(f"ffmpeg-python not available ({e}), using subprocess")
         cmd = [
             'ffmpeg',
             '-i', video_path,
@@ -46,7 +51,7 @@ def extract_audio_from_video(video_path: str, audio_path: str) -> str:
             audio_path
         ]
         
-        subprocess.run(cmd, check=True, capture_output=True)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         logger.info(f"Extracted audio: {audio_path}")
         return audio_path
 

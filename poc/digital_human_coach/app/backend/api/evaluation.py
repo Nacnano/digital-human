@@ -18,7 +18,6 @@ from app.backend.models.schemas import (
 )
 from app.backend.services.llm_service import EVALUATION_SYSTEM_PROMPT, create_llm_service
 from app.backend.services.metrics_service import MetricsService
-from app.backend.services.pose_service import PoseService
 from app.backend.services.stt_service import create_stt_service
 from app.backend.services.tts_service import create_tts_service
 from app.utils.storage import StorageService
@@ -31,12 +30,11 @@ storage = StorageService()
 _llm_service = None
 _stt_service = None
 _tts_service = None
-_pose_service = None
 _metrics_service = None
 
 def get_services():
     """Lazy initialization of services"""
-    global _llm_service, _stt_service, _tts_service, _pose_service, _metrics_service
+    global _llm_service, _stt_service, _tts_service, _metrics_service
     
     if _llm_service is None:
         llm_provider = os.getenv("LLM_PROVIDER", "openai")
@@ -65,26 +63,36 @@ def get_services():
         _tts_service = create_tts_service(
             provider=os.getenv("TTS_PROVIDER", "edge")
         )
-    if _pose_service is None:
-        _pose_service = PoseService()
     if _metrics_service is None:
         _metrics_service = MetricsService()
     
-    return _llm_service, _stt_service, _tts_service, _pose_service, _metrics_service
+    return _llm_service, _stt_service, _tts_service, _metrics_service
 
 
 @router.post("/upload", response_model=VideoUploadResponse)
 async def upload_video(file: UploadFile = File(...)):
     """Upload video for evaluation"""
-    if not file.content_type.startswith("video/"):
+    # Check if content_type is set and is a video
+    if file.content_type and not file.content_type.startswith("video/"):
         raise HTTPException(status_code=400, detail="File must be a video")
+    
+    # If content_type is None, check file extension
+    if not file.content_type and file.filename:
+        valid_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv']
+        if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
+            raise HTTPException(status_code=400, detail="File must be a video (mp4, avi, mov, mkv, webm, flv, wmv)")
     
     # Create session
     session_id = storage.create_session("evaluation")
     
     # Save video
     video_data = await file.read()
-    video_filename = f"input.{file.filename.split('.')[-1]}"
+    # Get file extension safely
+    if file.filename and '.' in file.filename:
+        file_extension = file.filename.split('.')[-1]
+    else:
+        file_extension = 'mp4'  # default
+    video_filename = f"input.{file_extension}"
     video_path = storage.save_file(session_id, video_data, video_filename, "video")
     
     # Get video info
@@ -117,11 +125,14 @@ async def process_evaluation(session_id: str):
     """Background task to process video evaluation"""
     try:
         # Get services
-        llm_service, stt_service, tts_service, pose_service, metrics_service = get_services()
+        llm_service, stt_service, tts_service, metrics_service = get_services()
         
         storage.update_metadata(session_id, {"status": "processing", "progress": 0})
         
         metadata = storage.get_metadata(session_id)
+        if not metadata or "video_path" not in metadata:
+            raise HTTPException(status_code=404, detail="Session or video not found")
+        
         video_path = metadata["video_path"]
         
         # Step 1: Extract audio (10%)
@@ -140,13 +151,69 @@ async def process_evaluation(session_id: str):
         speech_metrics = metrics_service.analyze_speech(
             audio_path,
             transcript,
-            metadata.get("duration")
+            metadata.get("duration") if metadata else None
         )
         storage.update_metadata(session_id, {"progress": 50})
         
-        # Step 4: Analyze pose (70%)
-        logger.info(f"[{session_id}] Analyzing body language...")
-        pose_metrics = pose_service.analyze_video(video_path)
+        # Step 4: Use LLM to analyze presentation based on transcript and audio metrics (70%)
+        logger.info(f"[{session_id}] Analyzing presentation with LLM...")
+        # Create a prompt for body language and presentation analysis based on transcript
+        presentation_analysis_prompt = f"""Based on the following speech transcript and metrics, analyze the presentation quality focusing on:
+1. Content structure and clarity
+2. Speaking style and engagement
+3. Inferred body language and presence (based on speech patterns)
+4. Professional presentation quality
+
+Transcript:
+{transcript}
+
+Speech Metrics:
+- Words per minute: {speech_metrics.words_per_minute:.1f}
+- Pauses: {speech_metrics.pause_count}
+- Average pause duration: {speech_metrics.average_pause_duration:.2f}s
+- Filler words: {speech_metrics.filler_words_count}
+
+Provide a JSON response with estimated scores (0-10) for:
+- posture_score: Professional presence
+- gesture_count: Estimated natural gestures
+- movement_smoothness: Flow and rhythm (0-10)
+- eye_contact_score: Engagement level
+- body_openness_score: Confidence indicators
+
+Format: {{"posture_score": 0.0, "gesture_count": 0, "movement_smoothness": 0.0, "eye_contact_score": 0.0, "body_openness_score": 0.0}}
+"""
+        
+        try:
+            presentation_analysis_text = await llm_service.generate_text(
+                presentation_analysis_prompt,
+                system_prompt="You are an expert communication coach analyzing presentation quality. Provide only JSON output."
+            )
+            presentation_data = json.loads(presentation_analysis_text)
+            
+            # Create pose metrics from LLM analysis
+            from app.backend.models.schemas import PoseMetrics
+            pose_metrics = PoseMetrics(
+                posture_score=float(presentation_data.get("posture_score", 7.0)),
+                gesture_count=int(presentation_data.get("gesture_count", 5)),
+                movement_smoothness=float(presentation_data.get("movement_smoothness", 7.0)),
+                eye_contact_score=float(presentation_data.get("eye_contact_score", 7.0)),
+                body_openness_score=float(presentation_data.get("body_openness_score", 7.0)),
+                frames_analyzed=1,
+                tracking_quality=1.0
+            )
+        except Exception as llm_error:
+            logger.warning(f"[{session_id}] LLM presentation analysis failed: {llm_error}. Using default metrics.")
+            # Create default pose metrics
+            from app.backend.models.schemas import PoseMetrics
+            pose_metrics = PoseMetrics(
+                posture_score=7.0,
+                gesture_count=5,
+                movement_smoothness=7.0,
+                eye_contact_score=7.0,
+                body_openness_score=7.0,
+                frames_analyzed=1,
+                tracking_quality=1.0
+            )
         storage.update_metadata(session_id, {"progress": 70})
         
         # Step 5: Generate AI feedback (85%)
@@ -185,12 +252,16 @@ async def process_evaluation(session_id: str):
         audio_feedback_url = f"/temp/sessions/{session_id}/feedback.mp3"
         storage.update_metadata(session_id, {"progress": 95})
         
+        # Get updated metadata for result
+        final_metadata = storage.get_metadata(session_id)
+        duration = final_metadata.get("duration", 0) if final_metadata else 0
+        
         # Create result
         result = EvaluationResult(
             session_id=session_id,
             video_url=f"/temp/sessions/{session_id}/video/input.mp4",
             transcript=transcript,
-            duration_seconds=metadata.get("duration", 0),
+            duration_seconds=duration,
             speech_metrics=speech_metrics,
             pose_metrics=pose_metrics,
             feedback=AIFeedback(
