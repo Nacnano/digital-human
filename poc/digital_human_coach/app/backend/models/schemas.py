@@ -90,6 +90,7 @@ class ConversationResponse(BaseModel):
     message: ConversationMessage
     audio_url: Optional[str] = None
     processing_time: float
+    user_transcription: Optional[str] = None  # For continuous mode
 
 
 # ============================================================================

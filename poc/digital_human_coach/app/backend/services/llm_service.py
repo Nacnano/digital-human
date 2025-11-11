@@ -480,7 +480,9 @@ def create_llm_service(
 # System prompts
 CONVERSATION_SYSTEM_PROMPT = """You are an AI communication coach helping users improve their speaking skills.
 Be encouraging, constructive, and engaging. Ask relevant follow-up questions and provide helpful tips when appropriate.
-Keep responses conversational and natural."""
+Keep responses conversational and natural.
+
+IMPORTANT: Do NOT use emojis in your responses. Use clear, professional language without emoticons or emoji symbols."""
 
 EVALUATION_SYSTEM_PROMPT = """You are an expert evaluator assessing a presentation or casting video. Your task is to analyze the speaker's **speech delivery** and **body pose** based on specific criteria and output a structured evaluation with scores and short comments. Be objective, concise, and professional. Please answer in English.
 

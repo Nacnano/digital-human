@@ -64,7 +64,7 @@ if mode == "🗣️ Conversation":
     st.sidebar.subheader("Input Method")
     input_method = st.sidebar.radio(
         "Choose input method:",
-        ["💬 Text", "🎤 Upload Audio", "🔴 Live Recording"],
+        ["💬 Text", "🎤 Upload Audio", "🔴 Live Recording", "🔄 Continuous Talking"],
         help="Select how you want to communicate with the AI coach"
     )
     
@@ -176,7 +176,7 @@ if mode == "🗣️ Conversation":
                 except Exception as e:
                     st.error(f"Error: {e}")
     
-    else:  # Live Recording
+    elif input_method == "🔴 Live Recording":
         st.info("🎙️ **Live Audio Recording**")
         st.write("Click the button below to record your voice in real-time.")
         
@@ -251,8 +251,183 @@ if mode == "🗣️ Conversation":
             - **Linux**: Use GNOME Sound Recorder or Audacity
             """)
     
+    elif input_method == "🔄 Continuous Talking":
+        # Continuous conversation mode - IMPROVED VERSION
+        st.info("🔄 **Continuous Talking Mode**")
+        st.write("""
+        **Manual Continuous Conversation:**
+        1. Start continuous mode below
+        2. Click the record button to capture your speech
+        3. Click again to stop when you finish speaking
+        4. The system automatically processes and responds
+        5. Repeat for natural conversation flow
+        
+        **Note:** This provides better control than auto-recording.
+        """)
+        
+        # Settings for continuous mode
+        with st.expander("⚙️ Settings"):
+            auto_play_response = st.checkbox(
+                "Auto-play AI responses",
+                value=True,
+                help="Automatically play AI voice responses"
+            )
+            
+            show_transcription = st.checkbox(
+                "Show transcriptions",
+                value=True,
+                help="Display text transcriptions of speech"
+            )
+        
+        # Initialize continuous mode state
+        if "continuous_mode_active" not in st.session_state:
+            st.session_state.continuous_mode_active = False
+        if "processing_audio" not in st.session_state:
+            st.session_state.processing_audio = False
+        
+        # Control buttons
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if not st.session_state.continuous_mode_active:
+                if st.button("🎙️ Start Continuous Mode", type="primary", use_container_width=True):
+                    st.session_state.continuous_mode_active = True
+                    st.session_state.processing_audio = False
+                    st.rerun()
+        
+        with col2:
+            if st.session_state.continuous_mode_active:
+                if st.button("⏹️ Stop Continuous Mode", type="secondary", use_container_width=True):
+                    st.session_state.continuous_mode_active = False
+                    st.session_state.processing_audio = False
+                    st.rerun()
+        
+        # Continuous mode active
+        if st.session_state.continuous_mode_active:
+            st.success("✅ **Continuous Mode Active** - Click record to speak!")
+            
+            # Status indicator
+            if st.session_state.processing_audio:
+                st.warning("⏳ Processing your speech... Please wait before recording again.")
+            
+            # Check if we can use audio_input
+            try:
+                # Only show recording interface if not currently processing
+                if not st.session_state.processing_audio:
+                    st.markdown("**🎤 Record your message:**")
+                    audio_value = st.audio_input("Click to start/stop recording", key=f"continuous_audio_{len(st.session_state.messages)}")
+                    
+                    if audio_value:
+                        # Check audio duration to avoid processing very short clips
+                        audio_bytes = audio_value.read()
+                        audio_value.seek(0)  # Reset for later use
+                        
+                        # Rough duration estimate (WAV format: file_size / sample_rate / channels / bytes_per_sample)
+                        # For typical WAV: 44100 Hz, stereo, 16-bit = ~176400 bytes/sec
+                        estimated_duration = len(audio_bytes) / 176400.0
+                        
+                        if estimated_duration < 0.5:
+                            st.warning(f"⚠️ Recording too short ({estimated_duration:.1f}s). Please speak longer.")
+                        else:
+                            # Set processing flag to prevent new recordings
+                            st.session_state.processing_audio = True
+                            
+                            # Automatically process when audio is captured
+                            with st.spinner("🎯 Processing your speech..."):
+                                # Send to API
+                                try:
+                                    files = {"audio": ("recording.wav", audio_value, "audio/wav")}
+                                    
+                                    response = requests.post(
+                                        f"{API_BASE}/api/conversation/{session_id}/speak",
+                                        files=files,
+                                        timeout=60  # Increased timeout for better reliability
+                                    )
+                                    
+                                    if response.status_code == 200:
+                                        result = response.json()
+                                        assistant_msg = result["message"]["content"]
+                                        audio_url = result.get("audio_url")
+                                        
+                                        # Get transcription from response if available
+                                        user_transcription = result.get("user_transcription", "[Voice message]")
+                                        
+                                        # Display user message with transcription
+                                        with st.chat_message("user"):
+                                            if show_transcription:
+                                                st.write(f"**You said:** {user_transcription}")
+                                            else:
+                                                st.write("🎤 [Voice message]")
+                                        
+                                        st.session_state.messages.append({
+                                            "role": "user",
+                                            "content": user_transcription
+                                        })
+                                        
+                                        # Display and play assistant response
+                                        with st.chat_message("assistant"):
+                                            if show_transcription:
+                                                st.write(assistant_msg)
+                                            if audio_url and auto_play_response:
+                                                # Auto-play the response
+                                                st.audio(f"{API_BASE}{audio_url}", autoplay=True)
+                                            elif audio_url:
+                                                st.audio(f"{API_BASE}{audio_url}")
+                                        
+                                        st.session_state.messages.append({
+                                            "role": "assistant",
+                                            "content": assistant_msg,
+                                            "audio_url": audio_url
+                                        })
+                                        
+                                        # Clear processing flag and rerun
+                                        st.session_state.processing_audio = False
+                                        st.rerun()
+                                    else:
+                                        st.error(f"API Error: {response.text}")
+                                        st.session_state.processing_audio = False
+                                        st.session_state.continuous_mode_active = False
+                                
+                                except Exception as e:
+                                    st.error(f"Error: {e}")
+                                    st.session_state.processing_audio = False
+                                    st.session_state.continuous_mode_active = False
+                else:
+                    # Show placeholder while processing
+                    st.info("⏳ Please wait for the AI to finish responding before recording again...")
+            
+            except AttributeError:
+                # Fallback for older Streamlit versions
+                st.error("❌ Continuous mode requires Streamlit 1.28 or higher.")
+                st.info("""
+                **To enable continuous mode:**
+                ```bash
+                pip install --upgrade streamlit>=1.28.0
+                ```
+                
+                **Alternative:** Use "Live Recording" mode for manual record/send workflow.
+                """)
+                st.session_state.continuous_mode_active = False
+        
+        else:
+            st.info("👆 Click 'Start Continuous Mode' above to begin")
+            st.write("""
+            **How it works:**
+            1. Start continuous mode
+            2. Click the record button and speak your message
+            3. Click again to stop recording when you finish
+            4. AI automatically processes and responds with voice
+            5. Repeat for natural conversation flow
+            
+            **Benefits:**
+            - Better speech detection than auto-recording
+            - No interruptions while you're speaking
+            - Natural conversation rhythm
+            - Clear start/stop control
+            """)
+    
     # Clear conversation
-    if st.sidebar.button("🗑️ Clear Conversation", help="Start a new conversation"):
+    if st.sidebar.button("️ Clear Conversation", help="Start a new conversation"):
         if "conv_session_id" in st.session_state:
             try:
                 requests.delete(f"{API_BASE}/api/conversation/{st.session_state.conv_session_id}")
@@ -260,6 +435,10 @@ if mode == "🗣️ Conversation":
                 pass
             del st.session_state.conv_session_id
             st.session_state.messages = []
+            if "continuous_mode_active" in st.session_state:
+                st.session_state.continuous_mode_active = False
+            if "processing_audio" in st.session_state:
+                st.session_state.processing_audio = False
         st.rerun()
 
 else:  # Evaluation Mode

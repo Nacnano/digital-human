@@ -169,7 +169,8 @@ async def speak(
             timestamp=datetime.now()
         ),
         audio_url=audio_url,
-        processing_time=processing_time
+        processing_time=processing_time,
+        user_transcription=text  # Include user transcription for continuous mode
     )
 
 
