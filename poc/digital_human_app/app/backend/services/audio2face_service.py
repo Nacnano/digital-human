@@ -324,8 +324,48 @@ class MockAudio2Face(Audio2FaceService):
             
             blendshapes = np.array(blendshapes)
             
+            # Create a simple mock video file (black frames with audio)
             if output_path is None:
-                output_path = tempfile.mktemp(suffix=".mp4")
+                output_fd, output_path = tempfile.mkstemp(suffix=".mp4")
+                os.close(output_fd)  # Close the file descriptor
+            
+            try:
+                import cv2
+                
+                # Create a simple video with audio
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                out = cv2.VideoWriter(output_path, fourcc, fps, (640, 480))
+                
+                # Generate black frames
+                for _ in range(num_frames):
+                    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                    out.write(frame)
+                
+                out.release()
+                
+                # Add audio to video using ffmpeg
+                try:
+                    import subprocess
+                    temp_video = tempfile.mktemp(suffix=".mp4")
+                    os.rename(output_path, temp_video)
+                    
+                    subprocess.run([
+                        'ffmpeg', '-y', '-i', temp_video, '-i', audio_path,
+                        '-c:v', 'copy', '-c:a', 'aac', '-shortest',
+                        output_path
+                    ], check=True, capture_output=True)
+                    
+                    os.remove(temp_video)
+                except Exception as e:
+                    logger.warning(f"Could not add audio to mock video: {e}")
+                    # Restore original video if ffmpeg fails
+                    if os.path.exists(temp_video):
+                        os.rename(temp_video, output_path)
+                
+            except Exception as e:
+                logger.warning(f"Could not create mock video file: {e}")
+                # Create an empty file so the path exists
+                Path(output_path).touch()
             
             logger.info(f"Generated mock animation: {num_frames} frames at {fps} FPS")
             

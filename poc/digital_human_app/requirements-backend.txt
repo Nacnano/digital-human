@@ -3,6 +3,7 @@ fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 pydantic>=2.5.0
 python-multipart>=0.0.6
+websockets>=12.0
 
 # AI/ML Services
 openai>=1.10.0
@@ -12,6 +13,10 @@ elevenlabs>=0.2.27
 edge-tts>=6.1.9
 gtts>=2.5.0
 openai-whisper>=20231117
+
+# Voice Activity Detection
+torch>=2.0.0              # For Silero VAD
+webrtcvad>=2.0.10         # For WebRTC VAD (optional, lightweight alternative)
 
 # Media Processing
 mediapipe>=0.10.9

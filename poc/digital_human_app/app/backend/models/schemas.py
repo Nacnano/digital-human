@@ -230,3 +230,64 @@ class PoseConfig(BaseModel):
     detector: str = "mediapipe"
     confidence_threshold: float = Field(default=0.5, ge=0, le=1)
     enable_3d: bool = False
+
+
+# ============================================================================
+# WebSocket Streaming Models
+# ============================================================================
+
+class StreamEventType(str, Enum):
+    """WebSocket event types for streaming conversation"""
+    AUDIO_CHUNK = "audio_chunk"  # User audio chunk
+    TRANSCRIPTION_PARTIAL = "transcription_partial"  # Partial transcription
+    TRANSCRIPTION_FINAL = "transcription_final"  # Final transcription
+    SPEECH_START = "speech_start"  # User started speaking
+    SPEECH_END = "speech_end"  # User stopped speaking
+    RESPONSE_START = "response_start"  # Assistant starting response
+    RESPONSE_TEXT = "response_text"  # Assistant text chunk
+    RESPONSE_AUDIO = "response_audio"  # Assistant audio chunk
+    RESPONSE_END = "response_end"  # Assistant finished response
+    ERROR = "error"  # Error occurred
+    STATUS = "status"  # Status update
+
+
+class StreamMessage(BaseModel):
+    """Base WebSocket streaming message"""
+    event: StreamEventType
+    session_id: str
+    timestamp: datetime = Field(default_factory=datetime.now)
+    data: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AudioChunkMessage(BaseModel):
+    """Audio chunk from client"""
+    audio_data: str  # Base64 encoded audio
+    sample_rate: int = 16000
+    format: str = "pcm16"  # pcm16, opus, etc.
+
+
+class TranscriptionMessage(BaseModel):
+    """Transcription result"""
+    text: str
+    is_final: bool
+    confidence: Optional[float] = None
+
+
+class ResponseTextMessage(BaseModel):
+    """Assistant text response chunk"""
+    text: str
+    is_final: bool
+
+
+class ResponseAudioMessage(BaseModel):
+    """Assistant audio response chunk"""
+    audio_data: str  # Base64 encoded audio
+    sample_rate: int = 24000
+    format: str = "pcm16"
+
+
+class StreamError(BaseModel):
+    """Error in streaming"""
+    error: str
+    detail: Optional[str] = None
+    recoverable: bool = True

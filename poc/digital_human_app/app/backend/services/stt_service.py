@@ -80,6 +80,7 @@ class DeepgramSTT(STTService):
             from deepgram import DeepgramClient
             self.client = DeepgramClient(api_key)
             self.model = model
+            self.api_key = api_key
             logger.info("Initialized Deepgram STT client")
         except ImportError:
             raise ImportError("deepgram-sdk not installed. Install with: pip install deepgram-sdk")
